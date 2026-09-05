@@ -1,0 +1,14 @@
+# Konfigurasi Cloudflare Worker untuk sinkronisasi SIM Sekolah ke GitHub.
+# File ini AMAN untuk di-commit — tidak berisi token atau kode rahasia apa pun.
+# Nilai rahasia (GITHUB_TOKEN, SYNC_PASSCODE) diatur terpisah lewat
+# `wrangler secret put`, bukan lewat file ini.
+
+name = "sim-sekolah-sync"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+GITHUB_OWNER = "GANTI_DENGAN_USERNAME_GITHUB_KAMU"
+GITHUB_REPO = "GANTI_DENGAN_NAMA_REPO_KAMU"
+GITHUB_BRANCH = "main"
+ALLOWED_ORIGIN = "https://GANTI_DENGAN_USERNAME_GITHUB_KAMU.github.io"

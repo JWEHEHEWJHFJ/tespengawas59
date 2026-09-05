@@ -12,6 +12,7 @@ index.html      -> halaman login + kerangka aplikasi
 style.css       -> semua styling
 app.js          -> logic login, routing, dashboard, dan fitur tambah/ubah/hapus data
 data/*.json     -> sumber data awal (persis dari file yang kamu unggah)
+sync-worker/    -> proxy Cloudflare Worker opsional untuk sinkron ke GitHub (lihat di bawah)
 ```
 
 ## Fitur tambah / ubah / hapus data
@@ -33,11 +34,74 @@ tempat memantau data unit lain, bukan tempat mengubahnya.
 **Catatan penting:** localStorage tersimpan per browser/perangkat, jadi
 perubahan yang dibuat di laptop kamu tidak otomatis muncul di HP orang lain
 yang membuka situs yang sama — beda dengan mengedit file JSON langsung yang
-otomatis sinkron untuk semua orang. Untuk sinkron ke semua perangkat lewat
-GitHub, cara paling aman adalah lewat backend kecil (mis. GitHub Action atau
-serverless function) yang menyimpan token secara aman di server — **jangan
-pernah menaruh personal access token GitHub di kode JavaScript sisi
-browser**, karena kode itu bisa dibaca siapa saja yang membuka situsnya.
+otomatis sinkron untuk semua orang. Untuk membuat perubahan benar-benar
+ter-push ke repo GitHub secara otomatis, ikuti bagian "Sinkronisasi otomatis
+ke GitHub" di bawah.
+
+## Sinkronisasi otomatis ke GitHub
+
+Karena situs ini statis (tidak ada server sendiri), ia **tidak bisa** langsung
+memakai personal access token GitHub di kode JavaScript-nya — kode itu
+berjalan di browser semua pengunjung, jadi token apa pun yang ditaruh di
+sana otomatis bisa diambil siapa saja. Solusinya: token disimpan di server
+kecil terpisah (Cloudflare Worker, gratis) yang bertindak sebagai perantara.
+Alurnya:
+
+```
+Browser (app.js) --POST (kode sinkron)--> Cloudflare Worker --token--> GitHub API
+```
+
+Worker-nya sudah disiapkan di folder `sync-worker/`. Langkah deploy:
+
+1. **Cabut token lama** yang pernah kamu kirim di chat (GitHub → Settings →
+   Developer settings → Personal access tokens → Revoke), lalu buat token
+   baru dengan scope minimal (`repo` saja untuk classic token, atau
+   "Contents: Read and write" saja untuk fine-grained token, dibatasi ke
+   repo ini saja). Jangan kirim token barunya ke siapa pun, termasuk lewat
+   chat AI mana pun — cukup dipakai sekali saat setup di langkah 4.
+2. Buat akun gratis di [Cloudflare](https://dash.cloudflare.com/sign-up) (kalau belum punya), lalu install Wrangler (CLI Cloudflare):
+   ```
+   npm install -g wrangler
+   wrangler login
+   ```
+3. Buka `sync-worker/wrangler.toml`, ganti tiga nilai berikut sesuai repo kamu:
+   - `GITHUB_OWNER` → username GitHub kamu
+   - `GITHUB_REPO` → nama repo tempat situs ini di-deploy
+   - `ALLOWED_ORIGIN` → alamat GitHub Pages kamu, mis. `https://usernamekamu.github.io`
+4. Dari dalam folder `sync-worker/`, atur dua rahasia (tidak pernah tersimpan di file, langsung ke server Cloudflare):
+   ```
+   cd sync-worker
+   wrangler secret put GITHUB_TOKEN
+   ```
+   (tempel token baru dari langkah 1 saat diminta), lalu:
+   ```
+   wrangler secret put SYNC_PASSCODE
+   ```
+   (buat kode rahasia sendiri, bebas — ini yang nanti diketik admin/staf di
+   aplikasi setiap mau sinkron, BUKAN password login OSIS/BK/dsb).
+5. Deploy worker-nya:
+   ```
+   wrangler deploy
+   ```
+   Wrangler akan menampilkan URL worker, contoh:
+   `https://sim-sekolah-sync.usernamekamu.workers.dev`
+6. Buka `app.js` di root proyek (bukan yang di folder `sync-worker/`), cari
+   baris `const SYNC_ENDPOINT = '';` lalu isi dengan URL dari langkah 5.
+   Commit & push perubahan ini ke repo, tunggu GitHub Pages redeploy.
+
+Setelah itu, di sidebar aplikasi akan ada tombol **"Sinkronkan ke GitHub"**.
+Setiap kali ada data yang ditambah/diubah/dihapus, tombol itu menunjukkan
+jumlah perubahan yang belum disinkron. Saat ditekan, aplikasi akan meminta
+kode sinkron (yang kamu buat di langkah 4) satu kali per sesi browser, lalu
+mengirim file JSON yang berubah ke Worker, yang kemudian meng-commit-nya ke
+repo GitHub atas nama akun token itu.
+
+**Kenapa perlu kode sinkron terpisah dari password login?** Semua password
+login (guru BK, OSIS, dst.) tersimpan sebagai teks biasa di `data/users.json`
+yang bisa dibaca siapa saja — kalau kode sinkron memakai password itu juga,
+siapa pun yang tahu satu password saja bisa mendorong perubahan ke repo
+GitHub kamu. Kode sinkron hanya diberitahukan admin ke staf yang memang
+berwenang menyimpan perubahan secara permanen.
 
 ## Cara deploy ke GitHub Pages
 

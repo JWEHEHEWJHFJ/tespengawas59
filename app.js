@@ -138,6 +138,8 @@ function getCollection(key, fallbackArr){
 }
 function saveCollection(key, arr){
   localStorage.setItem('sim_data:' + key, JSON.stringify(arr));
+  markDirty(key);
+  updateSyncBadge();
 }
 
 const collectionRegistry = {};
@@ -415,6 +417,153 @@ const CRUD_CONFIGS = {
   ]};
 });
 
+/* ================================================================
+   Sinkronisasi ke repo GitHub (opsional)
+
+   Aplikasi ini murni statis, jadi perubahan data pertama-tama HANYA
+   tersimpan di localStorage browser (lihat getCollection/saveCollection
+   di atas). Supaya perubahan itu ikut ter-push ke file JSON di GitHub
+   dan tampil untuk semua orang, admin perlu men-deploy sebuah proxy
+   server kecil (Cloudflare Worker) yang menyimpan GitHub token secara
+   aman di sisi server — TOKEN TIDAK PERNAH ditaruh di file ini.
+   Lihat folder /sync-worker dan README.md untuk cara deploy-nya.
+
+   Setelah proxy itu aktif, isi SYNC_ENDPOINT di bawah ini dengan URL
+   proxy tersebut (bukan rahasia, aman untuk publik). Selama masih
+   kosong, aplikasi tetap berjalan normal — hanya tombol "Sinkronkan
+   ke GitHub" yang akan memberi tahu admin agar mengatur ini dulu.
+   ================================================================ */
+
+const SYNC_ENDPOINT = ''; // contoh: 'https://sim-sekolah-sync.NAMA-AKUN.workers.dev'
+
+/* Memetakan setiap koleksi CRUD ke file JSON sumber + lokasi field di dalamnya,
+   supaya saat sinkron kita bisa merekonstruksi ulang file JSON yang utuh. */
+const COLLECTION_SOURCE = {
+  'guru-bk:kasus': { file:'guru-bk', path:['DATA_GURU_BK','kasus'] },
+  'guru-bk:jadwalKonseling': { file:'guru-bk', path:['DATA_GURU_BK','jadwalKonseling'] },
+  'wakasek-kesiswaan:prestasi': { file:'wakasek-kesiswaan', path:['DATA_KESISWAAN','prestasi'] },
+  'wakasek-kesiswaan:ekstrakurikuler': { file:'wakasek-kesiswaan', path:['ekstrakurikuler'] },
+  'wakasek-kesiswaan:pelanggaran': { file:'wakasek-kesiswaan', path:['pelanggaran'] },
+  'kurikulum:jadwalUjian': { file:'kurikulum', path:['DATA_KURIKULUM','jadwalUjian'] },
+  'kurikulum:capaianKurikulum': { file:'kurikulum', path:['DATA_KURIKULUM','capaianKurikulum'] },
+  'kurikulum:mataPelajaran': { file:'kurikulum', path:['DATA_KURIKULUM','mataPelajaran'] },
+  'humas:kegiatan': { file:'humas', path:['DATA_HUMAS','kegiatan'] },
+  'humas:kerjasama': { file:'humas', path:['DATA_HUMAS','kerjasama'] },
+  'humas:publikasi': { file:'humas', path:['DATA_HUMAS','publikasi'] },
+  'sarpras:inventaris': { file:'sarpras', path:['DATA_SARPRAS','inventaris'] },
+  'sarpras:pengajuanPerbaikan': { file:'sarpras', path:['DATA_SARPRAS','pengajuanPerbaikan'] },
+  'sarpras:kondisiRuang': { file:'sarpras', path:['DATA_SARPRAS','kondisiRuang'] },
+  'tata-usaha:suratMasuk': { file:'tata-usaha', path:['DATA_TATA_USAHA','suratMasuk'] },
+  'tata-usaha:suratKeluar': { file:'tata-usaha', path:['DATA_TATA_USAHA','suratKeluar'] },
+  'tata-usaha:administrasiSiswa': { file:'tata-usaha', path:['DATA_TATA_USAHA','administrasiSiswa'] },
+  'tata-usaha:keuangan': { file:'tata-usaha', path:['DATA_TATA_USAHA','keuangan'] }
+};
+['osis','pramuka','pmr','paskibra'].forEach(orgId => {
+  ['anggota','prokja','kegiatan','keuangan','lpj'].forEach(field => {
+    COLLECTION_SOURCE[orgId + ':' + field] = { file: orgId, path:[field] };
+  });
+});
+
+function setNestedPath(obj, pathArr, value){
+  let cur = obj;
+  for(let i = 0; i < pathArr.length - 1; i++){
+    if(typeof cur[pathArr[i]] !== 'object' || cur[pathArr[i]] === null) cur[pathArr[i]] = {};
+    cur = cur[pathArr[i]];
+  }
+  cur[pathArr[pathArr.length - 1]] = value;
+}
+
+/* Daftar koleksi yang sudah diedit lokal tapi belum ter-push ke GitHub.
+   Disimpan di localStorage juga supaya tidak hilang saat halaman dimuat ulang. */
+function getDirtySet(){
+  try { return new Set(JSON.parse(localStorage.getItem('sim_dirty_collections') || '[]')); }
+  catch(e){ return new Set(); }
+}
+function setDirtySet(set){
+  localStorage.setItem('sim_dirty_collections', JSON.stringify(Array.from(set)));
+}
+function markDirty(key){
+  const s = getDirtySet();
+  s.add(key);
+  setDirtySet(s);
+}
+function clearDirty(keys){
+  const s = getDirtySet();
+  keys.forEach(k => s.delete(k));
+  setDirtySet(s);
+}
+function updateSyncBadge(){
+  const btn = document.getElementById('sync-btn');
+  if(!btn) return;
+  const count = getDirtySet().size;
+  const countEl = btn.querySelector('.sync-count');
+  if(countEl) countEl.textContent = count ? ` (${count})` : '';
+  btn.title = count
+    ? `${count} perubahan lokal belum disinkronkan ke GitHub`
+    : 'Semua perubahan sudah tersinkron';
+}
+
+async function syncToGithub(){
+  if(!SYNC_ENDPOINT){
+    alert('Sinkronisasi ke GitHub belum diatur oleh admin aplikasi. Lihat README.md bagian "Sinkronisasi otomatis ke GitHub" untuk cara mengaktifkannya.');
+    return;
+  }
+  const dirty = Array.from(getDirtySet());
+  if(!dirty.length){
+    alert('Tidak ada perubahan baru yang perlu disinkronkan.');
+    return;
+  }
+  let passcode = sessionStorage.getItem('sim_sync_passcode');
+  if(!passcode){
+    passcode = prompt('Masukkan kode sinkronisasi GitHub (dari admin):');
+    if(!passcode) return;
+  }
+
+  const byFile = {};
+  dirty.forEach(key => {
+    const src = COLLECTION_SOURCE[key];
+    if(!src) return;
+    (byFile[src.file] = byFile[src.file] || []).push(key);
+  });
+
+  const btn = document.getElementById('sync-btn');
+  if(btn){ btn.disabled = true; btn.querySelector('.sync-label').textContent = 'Menyinkronkan...'; }
+
+  try{
+    for(const file of Object.keys(byFile)){
+      const original = await loadData(file);
+      const clone = JSON.parse(JSON.stringify(original));
+      byFile[file].forEach(key => {
+        const src = COLLECTION_SOURCE[key];
+        setNestedPath(clone, src.path, getCollection(key, []));
+      });
+      const res = await fetch(SYNC_ENDPOINT, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          passcode,
+          file: file + '.json',
+          content: clone,
+          message: `Perbarui ${file}.json lewat SIM Sekolah`
+        })
+      });
+      const json = await res.json().catch(() => ({}));
+      if(!res.ok || json.error){
+        throw new Error(json.error || ('Gagal (HTTP ' + res.status + ')'));
+      }
+      clearDirty(byFile[file]);
+    }
+    sessionStorage.setItem('sim_sync_passcode', passcode);
+    alert('Semua perubahan berhasil disinkronkan ke GitHub.');
+  }catch(err){
+    sessionStorage.removeItem('sim_sync_passcode');
+    alert('Sinkronisasi gagal: ' + err.message);
+  }finally{
+    if(btn){ btn.disabled = false; btn.querySelector('.sync-label').textContent = 'Sinkronkan ke GitHub'; }
+    updateSyncBadge();
+  }
+}
+
 /* ---------------- Auth ---------------- */
 
 let currentUser = null;
@@ -465,6 +614,9 @@ document.getElementById('logout-btn').addEventListener('click', () => {
   document.getElementById('login-form').reset();
 });
 
+const syncBtnEl = document.getElementById('sync-btn');
+if(syncBtnEl) syncBtnEl.addEventListener('click', syncToGithub);
+
 function showApp(){
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-shell').style.display = 'grid';
@@ -478,6 +630,7 @@ function showApp(){
   currentTab = menu.length ? menu[0].id : null;
   renderNav();
   renderTab();
+  updateSyncBadge();
 }
 
 /* ---------------- Menus ---------------- */
