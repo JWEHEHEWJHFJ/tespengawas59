@@ -1,0 +1,16 @@
+{
+  "pembina": "Ns. Rina Marlina, S.Kep.",
+  "anggota": [
+    { "_id": "a001", "nisn": "0051234568", "nama": "Hesti Purnama Sari", "kelas": "XI IPA 1", "jabatan": "Ketua PMR" }
+  ],
+  "prokja": [
+    { "_id": "p001", "nama": "Donor Darah Sekolah", "bidang": "Kesehatan", "target": "Terlaksana 1x per semester", "capaian": "Belum terlaksana", "status": "Belum Mulai" }
+  ],
+  "kegiatan": [
+    { "_id": "k001", "tanggalMulai": "2026-07-28", "tanggalSelesai": "2026-07-28", "nama": "Pelatihan Pertolongan Pertama", "deskripsi": "Simulasi penanganan cedera ringan bagi anggota baru.", "status": "Selesai" }
+  ],
+  "keuangan": [],
+  "lpj": [],
+  "ekstrakurikuler": [],
+  "pelanggaran": []
+}

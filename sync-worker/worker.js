@@ -46,7 +46,7 @@ export default {
     if (!env.SYNC_PASSCODE || passcode !== env.SYNC_PASSCODE) {
       return json({ error: 'Kode sinkronisasi salah atau belum diatur di server.' }, 401, corsHeaders);
     }
-    if (!file || !/^[a-zA-Z0-9_-]+\.json$/.test(file)) {
+    if (!file || !/^([a-zA-Z0-9_-]+\/)?[a-zA-Z0-9_-]+\.json$/.test(file)) {
       return json({ error: 'Nama file tidak valid.' }, 400, corsHeaders);
     }
     if (content === undefined || content === null) {
@@ -66,27 +66,34 @@ export default {
     };
 
     try {
-      // 1) Ambil sha file saat ini (dibutuhkan GitHub API untuk update file yang sudah ada)
+      // 1) Ambil sha file saat ini (dibutuhkan GitHub API untuk update file yang sudah ada).
+      //    Kalau file belum pernah ada (mis. organisasi baru dari fitur Ekstrakurikuler),
+      //    GitHub akan membalas 404 — dalam hal ini kita lanjut membuat file baru (tanpa sha).
+      let sha;
       const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch)}`, { headers: ghHeaders });
-      if (!getRes.ok) {
+      if (getRes.ok) {
+        const current = await getRes.json();
+        sha = current.sha;
+      } else if (getRes.status !== 404) {
         const detail = await getRes.text();
         return json({ error: `Gagal membaca ${path} dari GitHub (${getRes.status}): ${detail}` }, 502, corsHeaders);
       }
-      const current = await getRes.json();
 
-      // 2) Susun ulang isi file baru lalu kirim sebagai commit baru
+      // 2) Susun ulang isi file baru lalu kirim sebagai commit baru (update jika sha ada, buat baru jika tidak)
       const newContentStr = JSON.stringify(content, null, 2) + '\n';
       const newContentB64 = toBase64Utf8(newContentStr);
+
+      const putBody = {
+        message: message || `Perbarui ${path} lewat SIM Sekolah`,
+        content: newContentB64,
+        branch,
+      };
+      if (sha) putBody.sha = sha;
 
       const putRes = await fetch(apiUrl, {
         method: 'PUT',
         headers: { ...ghHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: message || `Perbarui ${path} lewat SIM Sekolah`,
-          content: newContentB64,
-          sha: current.sha,
-          branch,
-        }),
+        body: JSON.stringify(putBody),
       });
 
       if (!putRes.ok) {

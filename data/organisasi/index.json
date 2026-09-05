@@ -1,0 +1,8 @@
+{
+  "ORGANISASI_LIST": [
+    { "id": "osis", "label": "OSIS", "color": "#1b2a4a", "dataVar": { "pembina": "Ahmad Fauzi, S.Pd." } },
+    { "id": "pramuka", "label": "Pramuka", "color": "#1f7a4d", "dataVar": { "pembina": "Andi Setiawan" } },
+    { "id": "pmr", "label": "PMR", "color": "#b13434", "dataVar": { "pembina": "Ns. Rina Marlina, S.Kep." } },
+    { "id": "paskibra", "label": "Paskibra", "color": "#a5690a", "dataVar": { "pembina": "Sertu Joko Priyono" } }
+  ]
+}

@@ -17,6 +17,13 @@ async function loadData(name){
   dataCache[name] = json;
   return json;
 }
+/* Sama seperti loadData, tapi tidak melempar error kalau file belum ada —
+   dipakai untuk file organisasi yang baru dibuat lewat fitur Ekstrakurikuler
+   dan belum pernah tersinkron ke GitHub (jadi belum benar-benar ada di repo). */
+async function loadDataSafe(name, fallback){
+  try { return await loadData(name); }
+  catch(e){ return fallback; }
+}
 
 /* ---------------- Format & badge helpers ---------------- */
 
@@ -182,6 +189,9 @@ function crudTable(headers, dataRows, collectionKey, opts){
 function fab(collectionKey, label){
   return `<button type="button" class="fab-add" data-action="add" data-collection="${collectionKey}" title="${label || 'Tambah data'}">${ICON_PLUS}</button>`;
 }
+function addBtn(collectionKey, label){
+  return `<button type="button" class="btn-add-inline" data-action="add" data-collection="${collectionKey}">${ICON_PLUS}${escapeHtml(label || 'Tambah')}</button>`;
+}
 
 function openModal(html){
   document.getElementById('modal-box').innerHTML = html;
@@ -222,7 +232,7 @@ function openItemModal(collectionKey, uid){
     </div>
   `);
   document.getElementById('modal-cancel').onclick = closeModal;
-  document.getElementById('modal-save').onclick = () => {
+  document.getElementById('modal-save').onclick = async () => {
     const box = document.getElementById('modal-box');
     const newItem = isEdit ? {...item} : { _uid: genId() };
     config.fields.forEach(f => {
@@ -235,6 +245,9 @@ function openItemModal(collectionKey, uid){
       ? reg.arr.map(i => i._uid === item._uid ? newItem : i)
       : [...reg.arr, newItem];
     saveCollection(collectionKey, arr);
+    if(typeof config.afterSave === 'function'){
+      await config.afterSave(newItem, isEdit);
+    }
     closeModal();
     renderTab();
   };
@@ -288,7 +301,7 @@ const CRUD_CONFIGS = {
     {key:'pembina', label:'Pembina', type:'text'},
     {key:'jadwal', label:'Jadwal', type:'text'},
     {key:'anggota', label:'Jumlah Anggota', type:'number'}
-  ]},
+  ], afterSave:(item, isEdit) => { if(!isEdit) return ensureOrganisasiForEkstrakurikuler(item); } },
   'wakasek-kesiswaan:pelanggaran': { title:'Pelanggaran Siswa', fields:[
     {key:'tanggal', label:'Tanggal', type:'date'},
     {key:'nisn', label:'NISN', type:'text'},
@@ -382,39 +395,50 @@ const CRUD_CONFIGS = {
     {key:'status', label:'Status', type:'select', options:['Lunas','Belum Lunas','Cicilan']}
   ]}
 };
-['osis','pramuka','pmr','paskibra'].forEach(orgId => {
-  CRUD_CONFIGS[orgId + ':anggota'] = { title:'Anggota', fields:[
+const ORG_FIELD_CONFIGS = {
+  anggota: { title:'Anggota', fields:[
     {key:'nisn', label:'NISN', type:'text'},
     {key:'nama', label:'Nama', type:'text'},
     {key:'kelas', label:'Kelas', type:'text'},
     {key:'jabatan', label:'Jabatan', type:'text'}
-  ]};
-  CRUD_CONFIGS[orgId + ':prokja'] = { title:'Program Kerja', fields:[
+  ]},
+  prokja: { title:'Program Kerja', fields:[
     {key:'nama', label:'Nama Program', type:'text'},
     {key:'bidang', label:'Bidang', type:'text'},
     {key:'target', label:'Target', type:'text'},
     {key:'capaian', label:'Capaian', type:'text'},
     {key:'status', label:'Status', type:'select', options:['Belum Mulai','Berjalan','Selesai']}
-  ]};
-  CRUD_CONFIGS[orgId + ':kegiatan'] = { title:'Kegiatan', fields:[
+  ]},
+  kegiatan: { title:'Kegiatan', fields:[
     {key:'tanggalMulai', label:'Tanggal Mulai', type:'date'},
     {key:'tanggalSelesai', label:'Tanggal Selesai (opsional)', type:'date'},
     {key:'nama', label:'Nama Kegiatan', type:'text'},
     {key:'deskripsi', label:'Deskripsi', type:'textarea'},
     {key:'status', label:'Status', type:'select', options:['Direncanakan','Selesai']}
-  ]};
-  CRUD_CONFIGS[orgId + ':keuangan'] = { title:'Transaksi Keuangan', fields:[
+  ]},
+  keuangan: { title:'Transaksi Keuangan', fields:[
     {key:'tanggal', label:'Tanggal', type:'date'},
     {key:'keterangan', label:'Keterangan', type:'text'},
     {key:'jenis', label:'Jenis', type:'select', options:['Pemasukan','Pengeluaran']},
     {key:'nominal', label:'Nominal (Rp)', type:'number'}
-  ]};
-  CRUD_CONFIGS[orgId + ':lpj'] = { title:'Laporan Pertanggungjawaban', fields:[
+  ]},
+  lpj: { title:'Laporan Pertanggungjawaban', fields:[
     {key:'tanggal', label:'Tanggal', type:'date'},
     {key:'periode', label:'Periode', type:'text'},
     {key:'disusunOleh', label:'Disusun Oleh', type:'text'},
     {key:'isi', label:'Isi Laporan', type:'textarea'}
-  ]};
+  ]}
+};
+/* Setiap login organisasi (osis/pramuka/pmr/paskibra) pakai konfigurasi field yang sama,
+   plus alias generik "org:<field>" dipakai oleh organisasi baru dari fitur Ekstrakurikuler
+   yang tidak (belum) punya login sendiri. */
+['osis','pramuka','pmr','paskibra'].forEach(orgId => {
+  Object.keys(ORG_FIELD_CONFIGS).forEach(field => {
+    CRUD_CONFIGS[orgId + ':' + field] = ORG_FIELD_CONFIGS[field];
+  });
+});
+Object.keys(ORG_FIELD_CONFIGS).forEach(field => {
+  CRUD_CONFIGS['org:' + field] = ORG_FIELD_CONFIGS[field];
 });
 
 /* ================================================================
@@ -456,13 +480,26 @@ const COLLECTION_SOURCE = {
   'tata-usaha:suratMasuk': { file:'tata-usaha', path:['DATA_TATA_USAHA','suratMasuk'] },
   'tata-usaha:suratKeluar': { file:'tata-usaha', path:['DATA_TATA_USAHA','suratKeluar'] },
   'tata-usaha:administrasiSiswa': { file:'tata-usaha', path:['DATA_TATA_USAHA','administrasiSiswa'] },
-  'tata-usaha:keuangan': { file:'tata-usaha', path:['DATA_TATA_USAHA','keuangan'] }
+  'tata-usaha:keuangan': { file:'tata-usaha', path:['DATA_TATA_USAHA','keuangan'] },
+  'organisasi:index': { file:'organisasi/index', path:['ORGANISASI_LIST'] }
 };
-['osis','pramuka','pmr','paskibra'].forEach(orgId => {
-  ['anggota','prokja','kegiatan','keuangan','lpj'].forEach(field => {
-    COLLECTION_SOURCE[orgId + ':' + field] = { file: orgId, path:[field] };
-  });
-});
+
+/* Profil organisasi (osis/pramuka/pmr/paskibra, dan organisasi baru yang dibuat
+   lewat fitur Ekstrakurikuler) semuanya mengikuti pola tetap: file JSON-nya ada
+   di data/organisasi/<slug>.json, dengan field anggota/prokja/kegiatan/keuangan/lpj
+   sebagai daftar. Daripada mendaftarkan tiap organisasi satu-satu, sumbernya
+   diturunkan otomatis dari pola nama koleksi "<slug>:<field>" — ini juga membuat
+   organisasi baru langsung bisa disinkronkan tanpa perlu registrasi manual. */
+const ORG_PROFILE_FIELDS = ['anggota','prokja','kegiatan','keuangan','lpj'];
+function getCollectionSource(key){
+  if(COLLECTION_SOURCE[key]) return COLLECTION_SOURCE[key];
+  const idx = key.lastIndexOf(':');
+  if(idx === -1) return null;
+  const slug = key.slice(0, idx);
+  const field = key.slice(idx + 1);
+  if(!ORG_PROFILE_FIELDS.includes(field)) return null;
+  return { file: 'organisasi/' + slug, path: [field] };
+}
 
 function setNestedPath(obj, pathArr, value){
   let cur = obj;
@@ -521,7 +558,7 @@ async function syncToGithub(){
 
   const byFile = {};
   dirty.forEach(key => {
-    const src = COLLECTION_SOURCE[key];
+    const src = getCollectionSource(key);
     if(!src) return;
     (byFile[src.file] = byFile[src.file] || []).push(key);
   });
@@ -531,10 +568,10 @@ async function syncToGithub(){
 
   try{
     for(const file of Object.keys(byFile)){
-      const original = await loadData(file);
+      const original = await loadDataSafe(file, {});
       const clone = JSON.parse(JSON.stringify(original));
       byFile[file].forEach(key => {
-        const src = COLLECTION_SOURCE[key];
+        const src = getCollectionSource(key);
         setNestedPath(clone, src.path, getCollection(key, []));
       });
       const res = await fetch(SYNC_ENDPOINT, {
@@ -879,23 +916,42 @@ async function renderKesiswaan(tab){
   }
 }
 
-/* ---- Organisasi selector (dipakai di dalam Wakasek Kesiswaan, hanya lihat) ---- */
+/* ---- Organisasi selector (dipakai di dalam Wakasek Kesiswaan) ---- */
 let selectedOrg = 'osis';
+async function loadOrgManifest(){
+  const raw = await loadDataSafe('organisasi/index', { ORGANISASI_LIST: [] });
+  return getCollection('organisasi:index', raw.ORGANISASI_LIST || []);
+}
 async function organisasiSelector(){
-  const list = (await loadData('laporan-organisasi')).ORGANISASI_LIST;
+  const list = await loadOrgManifest();
+  if(!list.length){
+    return '<div class="panel"><div class="panel-body pad">Belum ada organisasi. Tambahkan lewat tab Ekstrakurikuler.</div></div>';
+  }
+  if(!list.find(o => o.id === selectedOrg)) selectedOrg = list[0].id;
   const tabs = list.map(o => `
     <button type="button" class="org-tab${o.id===selectedOrg?' active':''}" data-org-tab="${o.id}"
       style="${o.id===selectedOrg ? `background:${o.color};` : ''}">
       <i style="background:${o.color}"></i>${o.label}
     </button>`).join('');
   const org = list.find(o => o.id === selectedOrg) || list[0];
-  const orgData = await loadData(org.id);
+  const orgData = await loadDataSafe('organisasi/' + org.id, {});
   return `<div class="org-tabs">${tabs}</div>` + organisasiBody(org, orgData);
 }
 function organisasiBody(org, dRaw){
   const anggota = getCollection(org.id + ':anggota', dRaw.anggota || []);
+  registerCollection(org.id + ':anggota', anggota, CRUD_CONFIGS['org:anggota']);
   const prokja = getCollection(org.id + ':prokja', dRaw.prokja || []);
+  registerCollection(org.id + ':prokja', prokja, CRUD_CONFIGS['org:prokja']);
   const kegiatan = getCollection(org.id + ':kegiatan', dRaw.kegiatan || []);
+  registerCollection(org.id + ':kegiatan', kegiatan, CRUD_CONFIGS['org:kegiatan']);
+
+  const anggotaTable = crudTable(['Nama','Kelas','Jabatan'],
+    anggota.map(a=>({item:a, cells:[a.nama, a.kelas, a.jabatan]})), org.id + ':anggota').table;
+  const prokjaTable = crudTable(['Nama Program','Bidang','Target','Capaian','Status'],
+    prokja.map(p=>({item:p, cells:[p.nama, p.bidang, p.target, p.capaian, badge(p.status)]})), org.id + ':prokja').table;
+  const kegiatanTable = crudTable(['Tanggal','Kegiatan','Deskripsi','Status'],
+    kegiatan.map(k=>({item:k, cells:[fmtDate(k.tanggalMulai)+(k.tanggalSelesai&&k.tanggalSelesai!==k.tanggalMulai?' – '+fmtDate(k.tanggalSelesai):''),k.nama,k.deskripsi,badge(k.status)]})), org.id + ':kegiatan').table;
+
   return `
     <div class="dept-grid" style="margin-bottom:20px;">
       <div class="dept-card" style="border-top-color:${org.color}">
@@ -911,17 +967,32 @@ function organisasiBody(org, dRaw){
         <div class="dept-meta">${prokja.filter(p=>p.status==='Berjalan').length} dari ${prokja.length}</div>
       </div>
     </div>
-    ${panel('Anggota', simpleTable(['Nama','Kelas','Jabatan'], anggota.map(a=>[a.nama,a.kelas,a.jabatan])))}
-    ${panel('Program Kerja', simpleTable(['Nama Program','Bidang','Target','Capaian','Status'], prokja.map(p=>[p.nama,p.bidang,p.target,p.capaian,badge(p.status)])))}
-    ${panel('Kegiatan', simpleTable(['Tanggal','Kegiatan','Deskripsi','Status'], kegiatan.map(k=>[fmtDate(k.tanggalMulai)+(k.tanggalSelesai&&k.tanggalSelesai!==k.tanggalMulai?' – '+fmtDate(k.tanggalSelesai):''),k.nama,k.deskripsi,badge(k.status)])))}
+    ${panel('Anggota', anggotaTable, addBtn(org.id + ':anggota', 'Tambah anggota'))}
+    ${panel('Program Kerja', prokjaTable, addBtn(org.id + ':prokja', 'Tambah program'))}
+    ${panel('Kegiatan', kegiatanTable, addBtn(org.id + ':kegiatan', 'Tambah kegiatan'))}
   `;
+}
+
+/* ---- Utilitas organisasi: slug, warna, dan pembuatan profil baru dari Ekstrakurikuler ---- */
+const ORG_COLOR_PALETTE = ['#1b2a4a','#1f7a4d','#b13434','#a5690a','#586074','#7c3aed','#0f766e','#be185d'];
+function slugify(text){
+  const s = String(text).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return s || ('org-' + Date.now().toString(36));
+}
+async function ensureOrganisasiForEkstrakurikuler(item){
+  const manifest = await loadOrgManifest();
+  const slug = slugify(item.nama);
+  if(manifest.some(o => o.id === slug)) return;
+  const color = ORG_COLOR_PALETTE[manifest.length % ORG_COLOR_PALETTE.length];
+  saveCollection('organisasi:index', [...manifest, { id:slug, label:item.nama, color }]);
+  ORG_PROFILE_FIELDS.forEach(field => saveCollection(slug + ':' + field, []));
 }
 
 /* ---- Organisasi dashboards (login sebagai OSIS/Pramuka/PMR/Paskibra) — bisa kelola data sendiri ---- */
 async function renderOrganisasi(orgId, tab){
-  const orgList = (await loadData('laporan-organisasi')).ORGANISASI_LIST;
+  const orgList = await loadOrgManifest();
   const org = orgList.find(o => o.id === orgId);
-  const dRaw = await loadData(orgId);
+  const dRaw = await loadDataSafe('organisasi/' + orgId, {});
   const label = org ? org.label : orgId;
 
   const anggota = getCollection(orgId + ':anggota', dRaw.anggota || []);

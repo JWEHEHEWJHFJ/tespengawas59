@@ -383,6 +383,21 @@ td.num-cell{font-family:var(--mono);}
 }
 .fab-add:hover{background:var(--navy-deep);}
 .fab-add svg{width:22px;height:22px;}
+.btn-add-inline{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 13px;
+  border-radius:20px;
+  border:1px solid var(--line-strong);
+  background:#fff;
+  color:var(--ink);
+  font-size:12.5px;
+  font-family:inherit;
+  cursor:pointer;
+}
+.btn-add-inline:hover{background:#f2f4f8;}
+.btn-add-inline svg{width:13px;height:13px;}
 
 .modal-overlay{
   position:fixed;inset:0;

@@ -12,24 +12,64 @@ index.html      -> halaman login + kerangka aplikasi
 style.css       -> semua styling
 app.js          -> logic login, routing, dashboard, dan fitur tambah/ubah/hapus data
 data/*.json     -> sumber data awal (persis dari file yang kamu unggah)
+data/organisasi/     -> profil semua organisasi/ekstrakurikuler (lihat di bawah)
 sync-worker/    -> proxy Cloudflare Worker opsional untuk sinkron ke GitHub (lihat di bawah)
 ```
+
+## Folder `data/organisasi/`
+
+Semua data organisasi siswa disimpan terpisah di folder ini, satu file JSON
+per organisasi:
+
+```
+data/organisasi/index.json     -> daftar semua organisasi (id, nama, warna)
+data/organisasi/osis.json      -> profil OSIS (anggota, prokja, kegiatan, keuangan, lpj)
+data/organisasi/pramuka.json
+data/organisasi/pmr.json
+data/organisasi/paskibra.json
+data/organisasi/<slug-baru>.json  -> dibuat otomatis untuk ekstrakurikuler baru (lihat di bawah)
+```
+
+**Organisasi baru dibuat otomatis dari tab Ekstrakurikuler.** Saat Wakasek
+Kesiswaan menambah data baru di tab "Ekstrakurikuler" (mis. menambah "Klub
+Robotik"), aplikasi otomatis:
+
+1. Menambahkan entri baru ke `data/organisasi/index.json` (id dibuat dari nama,
+   mis. `klub-robotik`, plus warna yang dipilih otomatis).
+2. Menyiapkan profil kosong (anggota, prokja, kegiatan, keuangan, lpj) yang
+   nantinya tersimpan di `data/organisasi/klub-robotik.json`.
+3. Organisasi itu langsung muncul di tab **Laporan Organisasi** milik Wakasek
+   Kesiswaan, lengkap dengan tombol **"+ Tambah anggota/program/kegiatan"** di
+   tiap panel, karena organisasi baru ini belum tentu punya akun login sendiri
+   di `data/users.json` — jadi Wakasek Kesiswaan yang mengelola datanya untuk
+   sementara.
+
+Seperti data lain, ini pertama-tama hanya tersimpan di localStorage browser.
+Untuk benar-benar membuat file `data/organisasi/klub-robotik.json` yang baru
+di repo GitHub, tekan **"Sinkronkan ke GitHub"** setelah mengatur Worker (lihat
+bagian di bawah) — Worker akan membuat file itu otomatis kalau belum ada.
+
+Kalau nanti organisasi itu diberi akun login sendiri (tambahkan manual di
+`data/users.json` dengan role sesuai id-nya, lalu tambahkan role itu ke daftar
+`MENUS`/`VIEWS` di `app.js`), dashboard pengurusnya akan otomatis membaca dan
+menyimpan ke file `data/organisasi/<id>.json` yang sama.
 
 ## Fitur tambah / ubah / hapus data
 
 Setiap tabel data di semua unit (BK, Kesiswaan, Kurikulum, Humas, Sarpras,
-Tata Usaha, OSIS/Pramuka/PMR/Paskibra) punya:
+Tata Usaha, OSIS/Pramuka/PMR/Paskibra, dan organisasi baru dari Ekstrakurikuler)
+punya:
 
-- **Tombol bulat "+" mengambang** di kanan bawah untuk membuka form tambah data.
+- **Tombol bulat "+" mengambang** (atau tombol "+ Tambah" di panel untuk
+  Laporan Organisasi) untuk membuka form tambah data.
 - **Ikon pensil** di setiap baris tabel untuk mengubah data itu.
 - **Ikon tempat sampah** di setiap baris tabel untuk menghapus data (dengan konfirmasi).
 
 Perubahan disimpan otomatis di **localStorage browser** (per divisi/koleksi
 data), lalu langsung dipakai untuk menggantikan data JSON asli saat aplikasi
-dibuka lagi di perangkat/browser yang sama. Tab yang sifatnya laporan lintas
-unit (mis. "Laporan BK" dan "Laporan Organisasi" di Wakasek Kesiswaan, serta
-ringkasan Kepala Sekolah/Pengawas) sengaja dibuat **hanya lihat**, karena itu
-tempat memantau data unit lain, bukan tempat mengubahnya.
+dibuka lagi di perangkat/browser yang sama. Tab "Laporan BK" di Wakasek
+Kesiswaan serta ringkasan Kepala Sekolah/Pengawas sengaja dibuat **hanya
+lihat**, karena itu tempat memantau data unit lain, bukan tempat mengubahnya.
 
 **Catatan penting:** localStorage tersimpan per browser/perangkat, jadi
 perubahan yang dibuat di laptop kamu tidak otomatis muncul di HP orang lain
@@ -139,6 +179,5 @@ sensitif tanpa backend otentikasi yang semestinya.
 
 Cukup edit file JSON terkait di `data/`, commit, push — tidak ada langkah build.
 Struktur setiap file mengikuti persis file yang diunggah sebelumnya (kunci
-`DATA_GURU_BK`, `DATA_KESISWAAN`, dst.), kecuali `osis.json`, `pramuka.json`,
-`pmr.json`, `paskibra.json` yang masing-masing ditambah field `pembina` di
-level atas.
+`DATA_GURU_BK`, `DATA_KESISWAAN`, dst.), kecuali file di `data/organisasi/`
+yang masing-masing berstruktur `{ pembina, anggota, prokja, kegiatan, keuangan, lpj }`.
