@@ -30,6 +30,13 @@ data/organisasi/paskibra.json
 data/organisasi/<slug-baru>.json  -> dibuat otomatis untuk ekstrakurikuler baru (lihat di bawah)
 ```
 
+**Tab "Ekstrakurikuler" di Wakasek Kesiswaan SEKARANG memakai daftar ini
+langsung** — bukan daftar terpisah lagi. Nama, Pembina, dan Jadwal yang
+tampil di sana diambil dan diedit langsung dari `data/organisasi/index.json`;
+kolom Anggota dihitung otomatis dari isi `anggota` di file profil masing-masing
+organisasi. Jadi menambah "ekstrakurikuler" = menambah organisasi baru, dan
+keduanya selalu sinkron karena sumber datanya sama persis.
+
 **Organisasi baru dibuat otomatis dari tab Ekstrakurikuler.** Saat Wakasek
 Kesiswaan menambah data baru di tab "Ekstrakurikuler" (mis. menambah "Klub
 Robotik"), aplikasi otomatis:
