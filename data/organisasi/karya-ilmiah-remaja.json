@@ -1,0 +1,15 @@
+{
+  "pembina": "Dedi Kurniawan, M.Si.",
+  "anggota": [
+    { "_id": "a001", "nisn": "0051234570", "nama": "Jihan Aulia Rahma", "kelas": "XI IPA 2", "jabatan": "Ketua" },
+    { "_id": "a002", "nisn": "0051234578", "nama": "Sekar Ayu Wulandari", "kelas": "XII IPA 2", "jabatan": "Anggota" }
+  ],
+  "prokja": [
+    { "_id": "p001", "nama": "Riset Sains Sederhana", "bidang": "Akademik", "target": "Selesai akhir semester", "capaian": "Proses pengumpulan data", "status": "Berjalan" }
+  ],
+  "kegiatan": [
+    { "_id": "k001", "tanggalMulai": "2026-11-15", "tanggalSelesai": "", "nama": "Presentasi Hasil Penelitian", "deskripsi": "Presentasi hasil riset sains sederhana di depan dewan guru.", "status": "Direncanakan" }
+  ],
+  "keuangan": [],
+  "lpj": []
+}

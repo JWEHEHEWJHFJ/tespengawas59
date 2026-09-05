@@ -1,0 +1,15 @@
+{
+  "pembina": "Ilham Setiawan, S.Pd.",
+  "anggota": [
+    { "_id": "a001", "nisn": "0051234573", "nama": "Muhammad Ridwan", "kelas": "XI IPS 2", "jabatan": "Kapten" },
+    { "_id": "a002", "nisn": "0051234581", "nama": "Vino Alfarizi", "kelas": "XII IPS 2", "jabatan": "Anggota" }
+  ],
+  "prokja": [
+    { "_id": "p001", "nama": "Latihan Rutin Futsal", "bidang": "Olahraga", "target": "2x seminggu", "capaian": "Berjalan sesuai jadwal", "status": "Berjalan" }
+  ],
+  "kegiatan": [
+    { "_id": "k001", "tanggalMulai": "2026-09-20", "tanggalSelesai": "", "nama": "Turnamen Futsal Antar Kelas", "deskripsi": "Kompetisi futsal persahabatan antar kelas menyambut akhir semester ganjil.", "status": "Direncanakan" }
+  ],
+  "keuangan": [],
+  "lpj": []
+}

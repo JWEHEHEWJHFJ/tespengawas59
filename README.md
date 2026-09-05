@@ -27,6 +27,9 @@ data/organisasi/osis.json      -> profil OSIS (anggota, prokja, kegiatan, keuang
 data/organisasi/pramuka.json
 data/organisasi/pmr.json
 data/organisasi/paskibra.json
+data/organisasi/futsal.json
+data/organisasi/paduan-suara.json
+data/organisasi/karya-ilmiah-remaja.json
 data/organisasi/<slug-baru>.json  -> dibuat otomatis untuk ekstrakurikuler baru (lihat di bawah)
 ```
 

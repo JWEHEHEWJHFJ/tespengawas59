@@ -3,6 +3,9 @@
     { "id": "osis", "label": "OSIS", "color": "#1b2a4a", "pembina": "Ahmad Fauzi, S.Pd.", "jadwal": "-" },
     { "id": "pramuka", "label": "Pramuka", "color": "#1f7a4d", "pembina": "Andi Setiawan", "jadwal": "-" },
     { "id": "pmr", "label": "PMR", "color": "#b13434", "pembina": "Ns. Rina Marlina, S.Kep.", "jadwal": "-" },
-    { "id": "paskibra", "label": "Paskibra", "color": "#a5690a", "pembina": "Sertu Joko Priyono", "jadwal": "-" }
+    { "id": "paskibra", "label": "Paskibra", "color": "#a5690a", "pembina": "Sertu Joko Priyono", "jadwal": "-" },
+    { "id": "futsal", "label": "Futsal", "color": "#586074", "pembina": "Ilham Setiawan, S.Pd.", "jadwal": "Selasa & Kamis, 15.30 - 17.00" },
+    { "id": "paduan-suara", "label": "Paduan Suara", "color": "#7c3aed", "pembina": "Sari Dewanti, S.Sn.", "jadwal": "Rabu, 15.00 - 17.00" },
+    { "id": "karya-ilmiah-remaja", "label": "Karya Ilmiah Remaja", "color": "#0f766e", "pembina": "Dedi Kurniawan, M.Si.", "jadwal": "Jumat, 14.00 - 16.00" }
   ]
 }

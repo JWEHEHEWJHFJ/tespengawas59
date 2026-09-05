@@ -1,0 +1,15 @@
+{
+  "pembina": "Sari Dewanti, S.Sn.",
+  "anggota": [
+    { "_id": "a001", "nisn": "0051234580", "nama": "Umi Kalsum", "kelas": "XII IPS 1", "jabatan": "Ketua" },
+    { "_id": "a002", "nisn": "0051234582", "nama": "Wulan Purnamasari", "kelas": "XII IPS 2", "jabatan": "Anggota" }
+  ],
+  "prokja": [
+    { "_id": "p001", "nama": "Latihan Vokal Mingguan", "bidang": "Seni", "target": "1x seminggu", "capaian": "Berjalan sesuai jadwal", "status": "Berjalan" }
+  ],
+  "kegiatan": [
+    { "_id": "k001", "tanggalMulai": "2026-09-01", "tanggalSelesai": "2026-09-01", "nama": "Paduan Suara Upacara Bulanan", "deskripsi": "Mengisi paduan suara pada upacara bendera awal bulan.", "status": "Selesai" }
+  ],
+  "keuangan": [],
+  "lpj": []
+}
