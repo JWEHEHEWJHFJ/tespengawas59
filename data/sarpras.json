@@ -1,0 +1,20 @@
+{
+  "DATA_SARPRAS": {
+    "ringkasan": { "totalAset": 420, "kondisiBaik": 350, "perluPerbaikan": 50, "rusakBerat": 20 },
+    "inventaris": [
+      { "nama": "Kursi Siswa", "jumlah": 850, "kondisi": "Baik", "lokasi": "Ruang Kelas" },
+      { "nama": "Proyektor", "jumlah": 18, "kondisi": "Perlu Perbaikan", "lokasi": "Ruang Kelas & Lab" },
+      { "nama": "Komputer Lab TIK", "jumlah": 40, "kondisi": "Baik", "lokasi": "Lab Komputer" },
+      { "nama": "AC Ruang Guru", "jumlah": 6, "kondisi": "Rusak Berat", "lokasi": "Ruang Guru" }
+    ],
+    "pengajuanPerbaikan": [
+      { "tanggal": "2026-08-20", "item": "Proyektor Kelas XI IPA 1", "pemohon": "Dewi Anggraini", "prioritas": "Sedang", "status": "Diproses" },
+      { "tanggal": "2026-08-28", "item": "AC Ruang Guru", "pemohon": "Rudi Hartono", "prioritas": "Tinggi", "status": "Menunggu Anggaran" }
+    ],
+    "kondisiRuang": [
+      { "ruang": "Ruang Kelas X-1", "kondisi": "Baik", "catatan": "-" },
+      { "ruang": "Laboratorium Kimia", "kondisi": "Perlu Perbaikan", "catatan": "Kran wastafel bocor" },
+      { "ruang": "Perpustakaan", "kondisi": "Baik", "catatan": "-" }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "pembina": "Ahmad Fauzi, S.Pd.",
+  "anggota": [
+    { "_id": "a001", "nisn": "0051234563", "nama": "Cahyo Nugroho", "kelas": "X-2", "jabatan": "Ketua OSIS" },
+    { "_id": "a002", "nisn": "0051234569", "nama": "Indra Kusuma", "kelas": "XI IPA 2", "jabatan": "Wakil Ketua" },
+    { "_id": "a003", "nisn": "0051234574", "nama": "Nadia Salsabila", "kelas": "XI IPS 2", "jabatan": "Sekretaris" }
+  ],
+  "prokja": [
+    { "_id": "p001", "nama": "Bakti Sosial Ramadhan", "bidang": "Sosial", "target": "Membagikan 200 paket sembako", "capaian": "150 paket tersalurkan", "status": "Berjalan" },
+    { "_id": "p002", "nama": "Class Meeting Semester Ganjil", "bidang": "Olahraga & Seni", "target": "Terlaksana setelah PAS Ganjil", "capaian": "-", "status": "Belum Mulai" }
+  ],
+  "kegiatan": [
+    { "_id": "k001", "tanggalMulai": "2026-08-17", "tanggalSelesai": "2026-08-17", "nama": "Upacara Peringatan HUT RI ke-81", "deskripsi": "Upacara bendera bersama seluruh warga sekolah.", "status": "Selesai" },
+    { "_id": "k002", "tanggalMulai": "2026-09-15", "tanggalSelesai": "", "nama": "Pelantikan Pengurus OSIS Baru", "deskripsi": "Serah terima jabatan pengurus OSIS periode 2026/2027.", "status": "Direncanakan" }
+  ],
+  "keuangan": [
+    { "_id": "kg001", "tanggal": "2026-08-01", "keterangan": "Kas OSIS bulan Agustus", "jenis": "Pemasukan", "nominal": 500000 },
+    { "_id": "kg002", "tanggal": "2026-08-16", "keterangan": "Perlengkapan Upacara HUT RI", "jenis": "Pengeluaran", "nominal": 250000 }
+  ],
+  "lpj": [
+    { "_id": "l001", "tanggal": "2026-08-20", "periode": "Minggu ke-3 Agustus 2026", "disusunOleh": "Muhammad Rizky Ramadhan (Ketua OSIS)", "isi": "Pelaksanaan upacara HUT RI ke-81 berjalan lancar, seluruh siswa hadir tepat waktu.", "lampiran": null }
+  ],
+  "ekstrakurikuler": [],
+  "pelanggaran": []
+}
