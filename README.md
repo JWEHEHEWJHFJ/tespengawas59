@@ -10,9 +10,34 @@ tidak perlu ubah kode.
 ```
 index.html      -> halaman login + kerangka aplikasi
 style.css       -> semua styling
-app.js          -> logic login, routing, dan render tiap dashboard
-data/*.json     -> sumber data (persis dari file yang kamu unggah)
+app.js          -> logic login, routing, dashboard, dan fitur tambah/ubah/hapus data
+data/*.json     -> sumber data awal (persis dari file yang kamu unggah)
 ```
+
+## Fitur tambah / ubah / hapus data
+
+Setiap tabel data di semua unit (BK, Kesiswaan, Kurikulum, Humas, Sarpras,
+Tata Usaha, OSIS/Pramuka/PMR/Paskibra) punya:
+
+- **Tombol bulat "+" mengambang** di kanan bawah untuk membuka form tambah data.
+- **Ikon pensil** di setiap baris tabel untuk mengubah data itu.
+- **Ikon tempat sampah** di setiap baris tabel untuk menghapus data (dengan konfirmasi).
+
+Perubahan disimpan otomatis di **localStorage browser** (per divisi/koleksi
+data), lalu langsung dipakai untuk menggantikan data JSON asli saat aplikasi
+dibuka lagi di perangkat/browser yang sama. Tab yang sifatnya laporan lintas
+unit (mis. "Laporan BK" dan "Laporan Organisasi" di Wakasek Kesiswaan, serta
+ringkasan Kepala Sekolah/Pengawas) sengaja dibuat **hanya lihat**, karena itu
+tempat memantau data unit lain, bukan tempat mengubahnya.
+
+**Catatan penting:** localStorage tersimpan per browser/perangkat, jadi
+perubahan yang dibuat di laptop kamu tidak otomatis muncul di HP orang lain
+yang membuka situs yang sama — beda dengan mengedit file JSON langsung yang
+otomatis sinkron untuk semua orang. Untuk sinkron ke semua perangkat lewat
+GitHub, cara paling aman adalah lewat backend kecil (mis. GitHub Action atau
+serverless function) yang menyimpan token secara aman di server — **jangan
+pernah menaruh personal access token GitHub di kode JavaScript sisi
+browser**, karena kode itu bisa dibaca siapa saja yang membuka situsnya.
 
 ## Cara deploy ke GitHub Pages
 
