@@ -1,0 +1,26 @@
+{
+  "SISWA_LIST": [
+    { "nisn": "0051234561", "nama": "Ahmad Zaki Fadillah", "kelas": "X-1" },
+    { "nisn": "0051234562", "nama": "Bunga Citra Lestari", "kelas": "X-1" },
+    { "nisn": "0051234563", "nama": "Cahyo Nugroho", "kelas": "X-2" },
+    { "nisn": "0051234564", "nama": "Dinda Ayu Permata", "kelas": "X-2" },
+    { "nisn": "0051234565", "nama": "Eka Putra Wijaya", "kelas": "X-3" },
+    { "nisn": "0051234566", "nama": "Fitriani Nur Azizah", "kelas": "X-3" },
+    { "nisn": "0051234567", "nama": "Gilang Ramadhan", "kelas": "XI IPA 1" },
+    { "nisn": "0051234568", "nama": "Hesti Purnama Sari", "kelas": "XI IPA 1" },
+    { "nisn": "0051234569", "nama": "Indra Kusuma", "kelas": "XI IPA 2" },
+    { "nisn": "0051234570", "nama": "Jihan Aulia Rahma", "kelas": "XI IPA 2" },
+    { "nisn": "0051234571", "nama": "Krisna Adi Saputra", "kelas": "XI IPS 1" },
+    { "nisn": "0051234572", "nama": "Laila Fitria Ningsih", "kelas": "XI IPS 1" },
+    { "nisn": "0051234573", "nama": "Muhammad Ridwan", "kelas": "XI IPS 2" },
+    { "nisn": "0051234574", "nama": "Nadia Salsabila", "kelas": "XI IPS 2" },
+    { "nisn": "0051234575", "nama": "Oscar Pratama", "kelas": "XII IPA 1" },
+    { "nisn": "0051234576", "nama": "Putri Handayani", "kelas": "XII IPA 1" },
+    { "nisn": "0051234577", "nama": "Rangga Dwi Cahyono", "kelas": "XII IPA 2" },
+    { "nisn": "0051234578", "nama": "Sekar Ayu Wulandari", "kelas": "XII IPA 2" },
+    { "nisn": "0051234579", "nama": "Taufik Hidayat", "kelas": "XII IPS 1" },
+    { "nisn": "0051234580", "nama": "Umi Kalsum", "kelas": "XII IPS 1" },
+    { "nisn": "0051234581", "nama": "Vino Alfarizi", "kelas": "XII IPS 2" },
+    { "nisn": "0051234582", "nama": "Wulan Purnamasari", "kelas": "XII IPS 2" }
+  ]
+}

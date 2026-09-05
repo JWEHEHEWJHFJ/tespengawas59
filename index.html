@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIM Sekolah — SMA Negeri 5 Pinrang</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="login-screen" class="login-screen">
+  <div class="login-brand">
+    <div class="eyebrow">SISTEM INFORMASI MANAJEMEN</div>
+    <h1>SIM Sekolah</h1>
+    <p>Portal terpadu untuk seluruh unit kerja SMA Negeri 5 Pinrang — kesiswaan, kurikulum, humas, sarana prasarana, tata usaha, dan organisasi siswa dalam satu tempat.</p>
+    <div class="division-strip" id="division-strip"></div>
+  </div>
+  <div class="login-panel">
+    <form class="login-form" id="login-form">
+      <h2>Masuk ke akun Anda</h2>
+      <div class="sub">Gunakan akun yang diberikan oleh admin sekolah.</div>
+      <div class="login-error" id="login-error">Username atau kata sandi salah.</div>
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="password">Kata sandi</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn-primary">Masuk</button>
+    </form>
+  </div>
+</div>
+
+<div id="app-shell" class="app-shell" style="display:none;">
+  <aside class="sidebar">
+    <div class="brand">SIM Sekolah<span>SMA Negeri 5 Pinrang</span></div>
+    <nav id="nav-menu"></nav>
+    <div class="sidebar-foot">
+      <div id="sidebar-role" class="role-pill"></div>
+      <div class="user-name" id="sidebar-name"></div>
+      <div class="user-jabatan" id="sidebar-jabatan"></div>
+      <button class="logout-btn" id="logout-btn">Keluar</button>
+    </div>
+  </aside>
+  <main class="main" id="main-content"></main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
