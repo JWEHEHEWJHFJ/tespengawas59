@@ -10,6 +10,9 @@
     { "username": "pramuka", "password": "pramuka123", "name": "Andi Setiawan", "role": "pramuka", "jabatan": "Pembina Pramuka" },
     { "username": "pmr", "password": "pmr123", "name": "Hesti Purnama Sari", "role": "pmr", "jabatan": "Ketua PMR" },
     { "username": "paskibra", "password": "paskibra123", "name": "Oscar Pratama", "role": "paskibra", "jabatan": "Komandan Paskibra" },
+    { "username": "futsal", "password": "futsal123", "name": "Ilham Setiawan, S.Pd.", "role": "futsal", "jabatan": "Pembina Futsal" },
+    { "username": "paduansuara", "password": "paduansuara123", "name": "Sari Dewanti, S.Sn.", "role": "paduan-suara", "jabatan": "Pembina Paduan Suara" },
+    { "username": "kir", "password": "kir123", "name": "Dedi Kurniawan, M.Si.", "role": "karya-ilmiah-remaja", "jabatan": "Pembina Karya Ilmiah Remaja" },
     { "username": "kepsek", "password": "kepsek123", "name": "Drs. Hendra Wijaya, M.M.", "role": "kepala_sekolah", "jabatan": "Kepala Sekolah" },
     { "username": "pengawas", "password": "pengawas123", "name": "Dra. Sri Wahyuni, M.Pd.", "role": "pengawas", "jabatan": "Pengawas Sekolah" }
   ],

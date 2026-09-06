@@ -212,16 +212,20 @@ function fieldInputHtml(field, value){
   return `<input type="${field.type || 'text'}" data-field="${field.key}" value="${escapeHtml(v)}">`;
 }
 
-function openItemModal(collectionKey, uid){
+async function openItemModal(collectionKey, uid){
   const reg = collectionRegistry[collectionKey];
   if(!reg) return;
   const config = reg.config;
   const item = uid ? reg.arr.find(i => i._uid === uid) : null;
   const isEdit = !!item;
+  let prefill = {};
+  if(isEdit && typeof config.prefillAsync === 'function'){
+    prefill = (await config.prefillAsync(item)) || {};
+  }
   const fieldsHtml = config.fields.map(f => `
     <div class="field">
       <label>${f.label}</label>
-      ${fieldInputHtml(f, item ? item[f.key] : '')}
+      ${fieldInputHtml(f, item ? (prefill[f.key] !== undefined ? prefill[f.key] : item[f.key]) : '')}
     </div>`).join('');
   openModal(`
     <h3>${isEdit ? 'Ubah' : 'Tambah'} ${config.title}</h3>
@@ -241,26 +245,37 @@ function openItemModal(collectionKey, uid){
       if(f.type === 'number') val = val === '' ? 0 : Number(val);
       newItem[f.key] = val;
     });
-    const arr = isEdit
-      ? reg.arr.map(i => i._uid === item._uid ? newItem : i)
-      : [...reg.arr, newItem];
     if(!isEdit && typeof config.transformNew === 'function'){
       config.transformNew(newItem);
     }
-    saveCollection(collectionKey, arr);
+    if(typeof config.validate === 'function'){
+      const errMsg = config.validate(newItem, isEdit);
+      if(errMsg){ alert(errMsg); return; }
+    }
+    const arr = isEdit
+      ? reg.arr.map(i => i._uid === item._uid ? newItem : i)
+      : [...reg.arr, newItem];
     if(typeof config.afterSave === 'function'){
       await config.afterSave(newItem, isEdit);
     }
+    if(typeof config.sanitize === 'function'){
+      config.sanitize(newItem);
+    }
+    saveCollection(collectionKey, arr);
     closeModal();
     renderTab();
   };
 }
 
-function deleteItemPrompt(collectionKey, uid){
+async function deleteItemPrompt(collectionKey, uid){
   const reg = collectionRegistry[collectionKey];
   if(!reg) return;
   if(!confirm('Hapus data ini? Tindakan ini tidak bisa dibatalkan.')) return;
+  const item = reg.arr.find(i => i._uid === uid);
   const arr = reg.arr.filter(i => i._uid !== uid);
+  if(item && reg.config && typeof reg.config.afterDelete === 'function'){
+    await reg.config.afterDelete(item);
+  }
   saveCollection(collectionKey, arr);
   renderTab();
 }
@@ -440,14 +455,29 @@ Object.keys(ORG_FIELD_CONFIGS).forEach(field => {
 
 /* Tab "Ekstrakurikuler" di Wakasek Kesiswaan mengedit daftar organisasi itu
    sendiri (data/organisasi/index.json) — jadi menambah/mengubah data di sini
-   SAMA dengan menambah/mengubah organisasi di folder data/organisasi/. */
+   SAMA dengan menambah/mengubah organisasi di folder data/organisasi/.
+
+   Username & password login untuk organisasi/ekstrakurikuler itu JUGA diatur
+   di sini oleh Wakasek Kesiswaan (satu-satunya tempat kredensial organisasi
+   bisa dibuat/diubah di aplikasi ini). Kredensial disimpan terpisah di
+   data/users.json — tidak ikut tersimpan di data/organisasi/index.json —
+   supaya jumlah akun organisasi selalu sama dengan jumlah data ekstrakurikuler
+   (satu organisasi = satu akun, dibuat & dihapus bersamaan). */
 CRUD_CONFIGS['organisasi:index'] = {
   title: 'Ekstrakurikuler',
   fields: [
     {key:'label', label:'Nama', type:'text'},
     {key:'pembina', label:'Pembina', type:'text'},
-    {key:'jadwal', label:'Jadwal', type:'text'}
+    {key:'jadwal', label:'Jadwal', type:'text'},
+    {key:'username', label:'Username Login', type:'text'},
+    {key:'password', label:'Password Login (kosongkan jika tidak diubah)', type:'text'}
   ],
+  /* Saat mengubah data yang sudah ada, tampilkan username akun saat ini
+     (password sengaja tidak ditampilkan — kosong berarti tidak diubah). */
+  async prefillAsync(item){
+    const account = await findOrgAccount(item.id);
+    return { username: account ? account.username : '' };
+  },
   /* Hanya dijalankan untuk data BARU: buat id unik (slug) + warna, lalu
      siapkan profil kosong (anggota/prokja/kegiatan/keuangan/lpj) di
      data/organisasi/<slug>.json untuk organisasi ini. */
@@ -456,9 +486,26 @@ CRUD_CONFIGS['organisasi:index'] = {
     const existing = (collectionRegistry['organisasi:index'] && collectionRegistry['organisasi:index'].arr) || [];
     item.color = ORG_COLOR_PALETTE[existing.length % ORG_COLOR_PALETTE.length];
   },
-  afterSave(item, isEdit){
-    if(isEdit) return;
-    ORG_PROFILE_FIELDS.forEach(field => saveCollection(item.id + ':' + field, []));
+  validate(item, isEdit){
+    if(!isEdit && (!item.username || !item.password)){
+      return 'Username dan password login wajib diisi untuk ekstrakurikuler baru.';
+    }
+    return null;
+  },
+  async afterSave(item, isEdit){
+    await upsertOrgAccount(item);
+    if(!isEdit){
+      ORG_PROFILE_FIELDS.forEach(field => saveCollection(item.id + ':' + field, []));
+    }
+  },
+  /* Hapus username/password dari objek sebelum disimpan ke data/organisasi/index.json —
+     kredensial hanya boleh hidup di data/users.json. */
+  sanitize(item){
+    delete item.username;
+    delete item.password;
+  },
+  async afterDelete(item){
+    await removeOrgAccount(item.id);
   }
 };
 
@@ -501,7 +548,8 @@ const COLLECTION_SOURCE = {
   'tata-usaha:suratKeluar': { file:'tata-usaha', path:['DATA_TATA_USAHA','suratKeluar'] },
   'tata-usaha:administrasiSiswa': { file:'tata-usaha', path:['DATA_TATA_USAHA','administrasiSiswa'] },
   'tata-usaha:keuangan': { file:'tata-usaha', path:['DATA_TATA_USAHA','keuangan'] },
-  'organisasi:index': { file:'organisasi/index', path:['ORGANISASI_LIST'] }
+  'organisasi:index': { file:'organisasi/index', path:['ORGANISASI_LIST'] },
+  'users:list': { file:'users', path:['USERS'] }
 };
 
 /* Profil organisasi (osis/pramuka/pmr/paskibra, dan organisasi baru yang dibuat
@@ -621,6 +669,47 @@ async function syncToGithub(){
   }
 }
 
+/* ---------------- Akun login organisasi/ekstrakurikuler ----------------
+   Setiap organisasi (OSIS, Pramuka, ..., dan setiap ekstrakurikuler baru)
+   punya paling banyak SATU akun login, dikelola sepenuhnya lewat tab
+   Ekstrakurikuler oleh Wakasek Kesiswaan. Ini memastikan jumlah akun
+   organisasi selalu sama dengan jumlah data ekstrakurikuler. */
+async function getUserList(){
+  const raw = await loadDataSafe('users', { USERS: [] });
+  return getCollection('users:list', raw.USERS || []);
+}
+async function findOrgAccount(orgId){
+  const list = await getUserList();
+  return list.find(u => u.role === orgId) || null;
+}
+async function upsertOrgAccount(orgItem){
+  const username = (orgItem.username || '').trim();
+  const password = orgItem.password || '';
+  if(!username && !password) return; // tidak ada perubahan kredensial
+  const list = await getUserList();
+  const idx = list.findIndex(u => u.role === orgItem.id);
+  const jabatan = 'Pembina ' + orgItem.label;
+  if(idx === -1){
+    if(!username || !password) return; // butuh keduanya untuk membuat akun baru
+    saveCollection('users:list', [...list, {
+      username, password, name: orgItem.pembina || orgItem.label, role: orgItem.id, jabatan
+    }]);
+  }else{
+    const updated = { ...list[idx], jabatan };
+    if(username) updated.username = username;
+    if(password) updated.password = password;
+    if(orgItem.pembina) updated.name = orgItem.pembina;
+    const newList = [...list];
+    newList[idx] = updated;
+    saveCollection('users:list', newList);
+  }
+}
+async function removeOrgAccount(orgId){
+  const list = await getUserList();
+  const filtered = list.filter(u => u.role !== orgId);
+  if(filtered.length !== list.length) saveCollection('users:list', filtered);
+}
+
 /* ---------------- Auth ---------------- */
 
 let currentUser = null;
@@ -630,7 +719,7 @@ let currentTab = null;
 async function boot(){
   const users = await loadData('users');
   roleInfo = users.ROLE_INFO;
-  buildDivisionStrip();
+  await buildDivisionStrip();
 
   const saved = sessionStorage.getItem('simsekolah_user');
   if(saved){
@@ -639,9 +728,14 @@ async function boot(){
   }
 }
 
-function buildDivisionStrip(){
+async function buildDivisionStrip(){
   const strip = document.getElementById('division-strip');
-  strip.innerHTML = Object.values(roleInfo).map(r =>
+  const chips = Object.values(roleInfo).map(r => ({label:r.label, color:r.color}));
+  const manifest = await loadOrgManifest();
+  manifest.forEach(o => {
+    if(!chips.some(c => c.label === o.label)) chips.push({label:o.label, color:o.color});
+  });
+  strip.innerHTML = chips.map(r =>
     `<span class="division-chip"><i style="background:${r.color}"></i>${r.label}</span>`
   ).join('');
 }
@@ -650,8 +744,8 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
-  const users = await loadData('users');
-  const match = users.USERS.find(u => u.username === username && u.password === password);
+  const userList = await getUserList();
+  const match = userList.find(u => u.username === username && u.password === password);
   const errBox = document.getElementById('login-error');
   if(!match){
     errBox.classList.add('show');
@@ -677,17 +771,19 @@ if(syncBtnEl) syncBtnEl.addEventListener('click', syncToGithub);
 function showApp(){
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-shell').style.display = 'grid';
-  const info = roleInfo[currentUser.role] || {label: currentUser.jabatan, color:'#586074'};
-  document.getElementById('sidebar-role').textContent = info.label;
-  document.getElementById('sidebar-role').style.background = info.color;
-  document.getElementById('sidebar-name').textContent = currentUser.name;
-  document.getElementById('sidebar-jabatan').textContent = currentUser.jabatan;
-  buildNav();
-  const menu = MENUS[currentUser.role] || [];
-  currentTab = menu.length ? menu[0].id : null;
-  renderNav();
-  renderTab();
-  updateSyncBadge();
+  (async () => {
+    const ctx = await resolveRoleContext(currentUser.role);
+    const info = roleInfo[currentUser.role] || (ctx.orgEntry ? { label: ctx.orgEntry.label, color: ctx.orgEntry.color } : { label: currentUser.jabatan, color:'#586074' });
+    document.getElementById('sidebar-role').textContent = info.label;
+    document.getElementById('sidebar-role').style.background = info.color;
+    document.getElementById('sidebar-name').textContent = currentUser.name;
+    document.getElementById('sidebar-jabatan').textContent = currentUser.jabatan;
+    buildNav();
+    currentTab = ctx.menu.length ? ctx.menu[0].id : null;
+    renderNav();
+    renderTab();
+    updateSyncBadge();
+  })();
 }
 
 /* ---------------- Menus ---------------- */
@@ -745,22 +841,37 @@ const MENUS = {
   pengawas: [{id:'overview', label:'Ringkasan Sekolah'}]
 };
 
+/* Organisasi/ekstrakurikuler BARU (dibuat lewat tab Ekstrakurikuler) tidak
+   didaftarkan satu-satu di MENUS/VIEWS di atas — perannya dicocokkan secara
+   dinamis terhadap data/organisasi/index.json, supaya begitu Wakasek
+   Kesiswaan membuat akun untuk ekstrakurikuler baru, dashboard pengurusnya
+   langsung aktif tanpa perlu mengubah kode. */
+async function resolveRoleContext(role){
+  if(MENUS[role]) return { menu: MENUS[role], orgEntry: null };
+  const manifest = await loadOrgManifest();
+  const orgEntry = manifest.find(o => o.id === role);
+  if(orgEntry) return { menu: ORG_MENU, orgEntry };
+  return { menu: [], orgEntry: null };
+}
+
 function buildNav(){
   document.getElementById('nav-menu').innerHTML = '';
 }
 function renderNav(){
-  const menu = MENUS[currentUser.role] || [];
-  const nav = document.getElementById('nav-menu');
-  nav.innerHTML = menu.map(m =>
-    `<button class="nav-item${m.id === currentTab ? ' active' : ''}" data-tab="${m.id}">${m.label}</button>`
-  ).join('');
-  nav.querySelectorAll('.nav-item').forEach(btn => {
-    btn.addEventListener('click', () => {
-      currentTab = btn.dataset.tab;
-      renderNav();
-      renderTab();
+  (async () => {
+    const ctx = await resolveRoleContext(currentUser.role);
+    const nav = document.getElementById('nav-menu');
+    nav.innerHTML = ctx.menu.map(m =>
+      `<button class="nav-item${m.id === currentTab ? ' active' : ''}" data-tab="${m.id}">${m.label}</button>`
+    ).join('');
+    nav.querySelectorAll('.nav-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentTab = btn.dataset.tab;
+        renderNav();
+        renderTab();
+      });
     });
-  });
+  })();
 }
 
 function pageHead(title){
@@ -772,7 +883,8 @@ async function renderTab(){
   const main = document.getElementById('main-content');
   main.innerHTML = '<div style="padding:40px;color:#68708a;">Memuat data...</div>';
   try{
-    const html = await VIEWS[currentUser.role](currentTab);
+    const viewFn = VIEWS[currentUser.role] || ((tab) => renderOrganisasi(currentUser.role, tab));
+    const html = await viewFn(currentTab);
     main.innerHTML = html;
     wireTableSearches(main);
     wireExtras(main);
@@ -1013,15 +1125,15 @@ async function renderOrganisasi(orgId, tab){
   const label = org ? org.label : orgId;
 
   const anggota = getCollection(orgId + ':anggota', dRaw.anggota || []);
-  registerCollection(orgId + ':anggota', anggota, CRUD_CONFIGS[orgId + ':anggota']);
+  registerCollection(orgId + ':anggota', anggota, CRUD_CONFIGS[orgId + ':anggota'] || CRUD_CONFIGS['org:anggota']);
   const prokja = getCollection(orgId + ':prokja', dRaw.prokja || []);
-  registerCollection(orgId + ':prokja', prokja, CRUD_CONFIGS[orgId + ':prokja']);
+  registerCollection(orgId + ':prokja', prokja, CRUD_CONFIGS[orgId + ':prokja'] || CRUD_CONFIGS['org:prokja']);
   const kegiatan = getCollection(orgId + ':kegiatan', dRaw.kegiatan || []);
-  registerCollection(orgId + ':kegiatan', kegiatan, CRUD_CONFIGS[orgId + ':kegiatan']);
+  registerCollection(orgId + ':kegiatan', kegiatan, CRUD_CONFIGS[orgId + ':kegiatan'] || CRUD_CONFIGS['org:kegiatan']);
   const keuangan = getCollection(orgId + ':keuangan', dRaw.keuangan || []);
-  registerCollection(orgId + ':keuangan', keuangan, CRUD_CONFIGS[orgId + ':keuangan']);
+  registerCollection(orgId + ':keuangan', keuangan, CRUD_CONFIGS[orgId + ':keuangan'] || CRUD_CONFIGS['org:keuangan']);
   const lpj = getCollection(orgId + ':lpj', dRaw.lpj || []);
-  registerCollection(orgId + ':lpj', lpj, CRUD_CONFIGS[orgId + ':lpj']);
+  registerCollection(orgId + ':lpj', lpj, CRUD_CONFIGS[orgId + ':lpj'] || CRUD_CONFIGS['org:lpj']);
 
   if(tab === 'ringkasan'){
     return pageHead(`Ringkasan ${label}`) + statRow([

@@ -40,29 +40,48 @@ kolom Anggota dihitung otomatis dari isi `anggota` di file profil masing-masing
 organisasi. Jadi menambah "ekstrakurikuler" = menambah organisasi baru, dan
 keduanya selalu sinkron karena sumber datanya sama persis.
 
-**Organisasi baru dibuat otomatis dari tab Ekstrakurikuler.** Saat Wakasek
-Kesiswaan menambah data baru di tab "Ekstrakurikuler" (mis. menambah "Klub
-Robotik"), aplikasi otomatis:
+**Organisasi baru dibuat otomatis dari tab Ekstrakurikuler — lengkap dengan
+akun login-nya.** Saat Wakasek Kesiswaan menambah data baru di tab
+"Ekstrakurikuler" (mis. menambah "Klub Robotik"), Wakasek juga mengisi
+**Username Login** dan **Password Login** untuk organisasi itu di form yang
+sama (wajib diisi untuk ekstrakurikuler baru). Begitu disimpan, aplikasi
+otomatis:
 
 1. Menambahkan entri baru ke `data/organisasi/index.json` (id dibuat dari nama,
    mis. `klub-robotik`, plus warna yang dipilih otomatis).
 2. Menyiapkan profil kosong (anggota, prokja, kegiatan, keuangan, lpj) yang
    nantinya tersimpan di `data/organisasi/klub-robotik.json`.
-3. Organisasi itu langsung muncul di tab **Laporan Organisasi** milik Wakasek
-   Kesiswaan, lengkap dengan tombol **"+ Tambah anggota/program/kegiatan"** di
-   tiap panel, karena organisasi baru ini belum tentu punya akun login sendiri
-   di `data/users.json` — jadi Wakasek Kesiswaan yang mengelola datanya untuk
-   sementara.
+3. Membuat **satu akun login baru** di `data/users.json` dengan role yang sama
+   dengan id organisasinya, sehingga pengurus ekstrakurikuler itu bisa login
+   sendiri dan langsung mendapat dashboard sendiri (Ringkasan, Anggota, Program
+   Kerja, Kegiatan, Keuangan, LPJ) — sama seperti dashboard OSIS/Pramuka/dst.,
+   tanpa perlu menyentuh kode sama sekali.
+4. Organisasi itu juga langsung muncul di tab **Laporan Organisasi** milik
+   Wakasek Kesiswaan untuk dipantau.
 
-Seperti data lain, ini pertama-tama hanya tersimpan di localStorage browser.
-Untuk benar-benar membuat file `data/organisasi/klub-robotik.json` yang baru
-di repo GitHub, tekan **"Sinkronkan ke GitHub"** setelah mengatur Worker (lihat
-bagian di bawah) — Worker akan membuat file itu otomatis kalau belum ada.
+**Aturan akun login organisasi:**
+- **Hanya Wakasek Kesiswaan yang bisa membuat atau mengganti username/password**
+  organisasi — satu-satunya tempat di aplikasi ini yang punya form untuk itu
+  adalah modal tambah/ubah di tab Ekstrakurikuler. Login organisasi itu sendiri
+  (mis. login sebagai Futsal) tidak punya menu untuk mengganti password.
+- Saat **mengubah** data ekstrakurikuler yang sudah ada, kolom Username akan
+  terisi otomatis dengan username saat ini, dan kolom Password sengaja
+  dikosongkan — **biarkan password kosong kalau tidak ingin menggantinya**;
+  isi kalau memang ingin mengganti.
+- **Jumlah akun organisasi selalu sama dengan jumlah data ekstrakurikuler**:
+  menambah ekstrakurikuler baru membuat tepat satu akun baru, dan menghapus
+  ekstrakurikuler otomatis menghapus akun login-nya juga — tidak ada akun
+  organisasi yang "menggantung" tanpa data ekstrakurikuler, atau sebaliknya.
+- Username/password **tidak ikut tersimpan** di `data/organisasi/index.json` —
+  kredensial hanya hidup di `data/users.json`, supaya data organisasi (yang
+  ditampilkan di tabel Ekstrakurikuler) tetap terpisah dari data akun.
 
-Kalau nanti organisasi itu diberi akun login sendiri (tambahkan manual di
-`data/users.json` dengan role sesuai id-nya, lalu tambahkan role itu ke daftar
-`MENUS`/`VIEWS` di `app.js`), dashboard pengurusnya akan otomatis membaca dan
-menyimpan ke file `data/organisasi/<id>.json` yang sama.
+Seperti data lain, semua ini pertama-tama hanya tersimpan di localStorage
+browser. Untuk benar-benar membuat file `data/organisasi/klub-robotik.json`
+dan menambahkan akunnya ke `data/users.json` di repo GitHub, tekan
+**"Sinkronkan ke GitHub"** setelah mengatur Worker (lihat bagian di bawah) —
+Worker akan membuat file yang belum ada dan memperbarui `data/users.json`
+secara otomatis.
 
 ## Fitur tambah / ubah / hapus data
 
@@ -177,6 +196,7 @@ Akun ada di `data/users.json`. Contoh:
 | wasarpras  | wasarpras123  | Wakasek Sarana Prasarana|
 | tu         | tu123         | Tata Usaha              |
 | osis / pramuka / pmr / paskibra | ...123 | Pengurus organisasi |
+| futsal / paduansuara / kir | ...123 | Pengurus ekstrakurikuler (contoh) |
 | kepsek     | kepsek123     | Kepala Sekolah (ringkasan lintas unit) |
 | pengawas   | pengawas123   | Pengawas Sekolah (ringkasan lintas unit) |
 
